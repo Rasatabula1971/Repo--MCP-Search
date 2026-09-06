@@ -1,0 +1,43 @@
+[project]
+name = "cip"
+version = "0.1.0"
+description = "Capability Intelligence Platform — Steps 0-3 foundation"
+requires-python = ">=3.11"
+dependencies = [
+    "psycopg[binary]==3.2.3",
+    "python-dotenv==1.0.1",
+    "fastapi==0.115.0",       # Step 14, not used yet
+    "uvicorn==0.30.6",         # Step 14, not used yet
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.3",
+    "import-linter==2.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -v"
+
+[tool.importlinter]
+root_packages = ["core", "api", "workers", "connectors", "analysis", "db"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "core must not import from api or workers"
+type = "forbidden"
+source_modules = ["core"]
+forbidden_modules = ["api", "workers"]
+
+[[tool.importlinter.contracts]]
+name = "core.scoring has no import path to any provider client"
+type = "forbidden"
+source_modules = ["core.scoring"]
+forbidden_modules = [
+    "core.judgment",
+    "connectors",
+    "google",         # covers google.generativeai and friends
+    "openai",
+    "anthropic",
+]

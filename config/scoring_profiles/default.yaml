@@ -1,0 +1,44 @@
+name: default
+version: 1
+description: >
+  MVP scoring profile. Five dimensions, weights sum to 1.0. Dimensions
+  work over the evidence types Step 6's extractors produce.
+dimensions:
+  - name: has_identified_license
+    weight: 0.20
+    kind: presence
+    inputs:
+      evidence_type: license
+    require_field_not:
+      field: spdx_id
+      value: unknown
+
+  - name: has_tests
+    weight: 0.20
+    kind: count
+    inputs:
+      evidence_type: test_indicator
+    normalize:
+      ceiling: 10
+
+  - name: interface_surface
+    weight: 0.15
+    kind: count
+    inputs:
+      evidence_type: interface
+    normalize:
+      ceiling: 20
+
+  - name: no_secret_indicators
+    weight: 0.25
+    kind: absence
+    inputs:
+      evidence_type: secret_indicator
+    normalize:
+      cap: 5
+
+  - name: has_declared_dependencies
+    weight: 0.20
+    kind: presence
+    inputs:
+      evidence_type: dependency

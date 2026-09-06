@@ -1,0 +1,32 @@
+name: default
+version: 1
+description: >
+  MVP recommendation rules. Rules are evaluated in order against the
+  winning candidate (rank 1). First match wins. If nothing matches,
+  the default verdict is BUILD.
+default: BUILD
+rules:
+  - name: strong_adopt
+    conditions:
+      - {field: fit_score,          op: ">=", value: 0.9}
+      - {field: intrinsic_score,    op: ">=", value: 0.7}
+      - {field: blocking_gap_count, op: "==", value: 0}
+    verdict: ADOPT
+
+  - name: adapt_close_match
+    conditions:
+      - {field: fit_score,          op: ">=", value: 0.6}
+      - {field: intrinsic_score,    op: ">=", value: 0.6}
+      - {field: blocking_gap_count, op: "==", value: 0}
+    verdict: ADAPT
+
+  - name: reference_partial
+    conditions:
+      - {field: fit_score,          op: ">=", value: 0.3}
+      - {field: intrinsic_score,    op: ">=", value: 0.5}
+    verdict: REFERENCE
+
+  - name: reject_low_fit
+    conditions:
+      - {field: fit_score,          op: "<",  value: 0.3}
+    verdict: REJECT

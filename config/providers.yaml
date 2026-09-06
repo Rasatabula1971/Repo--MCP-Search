@@ -1,0 +1,15 @@
+providers:
+  - name: gemini
+    tier: free_primary
+    base_url: https://generativelanguage.googleapis.com
+    api_key_env: GEMINI_API_KEY
+    data_retention_posture: trains_on_input
+    models:
+      - id: gemini-2.5-flash
+        tool_calling: true
+        enabled: true
+    metadata:
+      # Verify against Gemini's current limits page before relying on these
+      # — free tiers are re-scoped without notice.
+      requests_per_minute: 15
+      requests_per_day: 1000

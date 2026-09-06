@@ -1,0 +1,12 @@
+.env
+.env.local
+.env.staging
+.env.production
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.idea/
+.vscode/
+*.log
