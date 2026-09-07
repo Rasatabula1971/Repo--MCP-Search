@@ -24,14 +24,35 @@ Implementation of Steps 0–3 of the Build Workflow (v1.0). The specs in `docs/`
 
 ## Quickstart (local, with a running Postgres)
 
-```
-cp .env.example .env
-# edit .env — set DATABASE_URL and TEST_DATABASE_URL
-export PYTHONPATH=.
+You need a running Postgres 14+ and two empty databases: `cip_local` and `cip_test`.
+The defaults in `.env.example` assume a local user `cip` with password `cip` on port `5432`.
+
+**Windows (PowerShell):**
+
+```powershell
+Copy-Item .env.example .env
+# edit .env — set DATABASE_URL and TEST_DATABASE_URL to match your Postgres install
+$env:PYTHONPATH = "."
 python -m db.migrate up      # applies migrations in order
 pytest                       # runs all tests
 lint-imports                 # enforces the two structural rules
 ```
+
+**macOS / Linux (bash):**
+
+```bash
+cp .env.example .env
+# edit .env — set DATABASE_URL and TEST_DATABASE_URL
+export PYTHONPATH=.
+python -m db.migrate up
+pytest
+lint-imports
+```
+
+Notes:
+- The Windows Postgres installer sometimes claims port `5433` if `5432` is already in use. Check with `netstat -ano | findstr LISTEN` and update the port in `.env` if needed.
+- `GITHUB_TOKEN` is optional — public-repo reads work without it, but a token raises the rate limit substantially.
+- `GEMINI_API_KEY` is only needed for Step 7 (model analysis) onward.
 
 ## Layout
 
