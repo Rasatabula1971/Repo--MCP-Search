@@ -69,8 +69,8 @@ def search_capabilities(
                 c.display_name ILIKE %(pat)s
              OR c.normalized_key ILIKE %(pat)s
         )
-          AND (%(ecosystem)s IS NULL OR c.ecosystem = %(ecosystem)s)
-          AND (%(kind)s IS NULL OR c.kind = %(kind)s)
+          AND (%(ecosystem)s::text IS NULL OR c.ecosystem = %(ecosystem)s)
+          AND (%(kind)s::text IS NULL OR c.kind = %(kind)s)
         ORDER BY
             COALESCE(s.total_score, 0) DESC,
             c.display_name ASC
