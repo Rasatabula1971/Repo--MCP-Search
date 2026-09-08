@@ -14,7 +14,11 @@ dependencies = [
     "PyYAML==6.0.2",
     "fastapi==0.115.0",
     "uvicorn==0.30.6",
+    "mcp>=1.30,<2.0",
 ]
+
+[project.scripts]
+cip-mcp = "mcp_server.server:main"
 
 [project.optional-dependencies]
 dev = [
@@ -23,7 +27,7 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["core*", "workers*", "connectors*", "analysis*", "db*", "api*"]
+include = ["core*", "workers*", "connectors*", "analysis*", "db*", "api*", "mcp_server*"]
 exclude = ["tests*", "docs*", "scripts*", "config*"]
 
 [tool.pytest.ini_options]

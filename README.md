@@ -20,7 +20,7 @@ Implementation of Steps 0–13 of the Build Workflow (v1.0). The Build Workflow,
 | 11. Lifecycle (candidate → cataloged, seven guards) | ✅ |
 | 12. Projects, requirements, fit evaluation, recommendations | ✅ |
 | 13. Search-before-build gate | ✅ |
-| 14. Read/write API + minimal UI | Not started — see Build Workflow doc |
+| 14. LLM-in-chat via MCP server (search + detail tools) | 🟡 in progress — see [mcp_server/README](mcp_server/README.md) |
 
 ## Quickstart (local, with a running Postgres)
 
@@ -58,7 +58,8 @@ Notes:
 
 ```
 .
-├── api/               FastAPI app (Step 14 — stubs only)
+├── api/               FastAPI app — stubs only (superseded by mcp_server for path B)
+├── mcp_server/        MCP server exposing the registry to LLMs (Step 14)
 ├── core/              Domain logic — no HTTP, no framework imports
 │   ├── workflow/      Workflow engine (Step 3)
 │   ├── capability/    Registry, normalization, supersession (Step 8)

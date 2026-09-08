@@ -10,3 +10,6 @@ venv/
 .idea/
 .vscode/
 *.log
+*.egg-info/
+build/
+dist/
