@@ -3,6 +3,14 @@ DB queries backing the MCP tools. Pure functions of a psycopg connection —
 no MCP types leak in, so these are testable without the MCP transport.
 
 Every dict returned here is safe to hand straight to json.dumps.
+
+Vocabulary note: `capability.kind` (pre-Phase-1) is the semantic role of
+what the thing does — 'library' | 'cli' | 'service' | .... The new
+`capability.component_kind` (Phase 1) is the *format* — 'library' | 'repo'
+| 'agent' | 'skill' | 'mcp_tool' | 'workflow_template'. Both filters
+exist because they answer different questions ("what does it do" vs
+"what shape does it come in"). The overlap on 'library' is unavoidable
+but the names disambiguate.
 """
 from __future__ import annotations
 
@@ -18,7 +26,10 @@ def search_capabilities(
     conn,
     query: str,
     ecosystem: str | None = None,
-    kind: str | None = None,
+    capability_kind: str | None = None,
+    component_kind: str | None = None,
+    runtime: str | None = None,
+    cost_tier: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -27,8 +38,13 @@ def search_capabilities(
     exists. Returns the top `limit` rows ordered by intrinsic score desc,
     display_name asc.
 
-    Only cataloged/candidate rows are visible; suppressed lifecycle states
-    are handled in a later slice when lifecycle wiring lands here.
+    Filters (all optional, ANDed together):
+      ecosystem       — 'pypi', 'npm', 'source', ...
+      capability_kind — semantic role ('library', 'cli', 'service', ...)
+      component_kind  — format ('library', 'repo', 'agent', 'skill',
+                        'mcp_tool', 'workflow_template')
+      runtime         — 'python_import', 'mcp_stdio', 'claude_skill', ...
+      cost_tier       — 'free', 'free_tier', 'cheap_paid', 'paid'
     """
     q = (query or "").strip()
     if not q:
@@ -44,7 +60,11 @@ def search_capabilities(
             c.normalized_key,
             c.display_name,
             c.ecosystem,
-            c.kind,
+            c.kind              AS capability_kind,
+            c.component_kind,
+            c.runtime,
+            c.cost_tier,
+            c.license_spdx,
             v.id::text          AS head_version_id,
             v.display_version,
             s.total_score,
@@ -69,8 +89,11 @@ def search_capabilities(
                 c.display_name ILIKE %(pat)s
              OR c.normalized_key ILIKE %(pat)s
         )
-          AND (%(ecosystem)s::text IS NULL OR c.ecosystem = %(ecosystem)s)
-          AND (%(kind)s::text IS NULL OR c.kind = %(kind)s)
+          AND (%(ecosystem)s::text       IS NULL OR c.ecosystem       = %(ecosystem)s)
+          AND (%(capability_kind)s::text IS NULL OR c.kind            = %(capability_kind)s)
+          AND (%(component_kind)s::text  IS NULL OR c.component_kind  = %(component_kind)s)
+          AND (%(runtime)s::text         IS NULL OR c.runtime         = %(runtime)s)
+          AND (%(cost_tier)s::text       IS NULL OR c.cost_tier       = %(cost_tier)s)
         ORDER BY
             COALESCE(s.total_score, 0) DESC,
             c.display_name ASC
@@ -79,7 +102,91 @@ def search_capabilities(
     params = {
         "pat": f"%{q}%",
         "ecosystem": ecosystem,
-        "kind": kind,
+        "capability_kind": capability_kind,
+        "component_kind": component_kind,
+        "runtime": runtime,
+        "cost_tier": cost_tier,
+        "limit": limit,
+    }
+    with conn.cursor() as cur:
+        cur.execute(sql, params)
+        cols = [d[0] for d in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+    return [_json_safe(row) for row in rows]
+
+
+# ---------------------------------------------------------------------------
+# browse_components
+# ---------------------------------------------------------------------------
+
+def browse_components(
+    conn,
+    component_kind: str | None = None,
+    ecosystem: str | None = None,
+    runtime: str | None = None,
+    cost_tier: str | None = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    """
+    Enumerate components without a keyword. This is the discovery surface
+    — the caller doesn't know what to search for, they want to see what
+    exists in a category.
+
+    All filters optional. With no filters, returns the top `limit`
+    components across the whole registry, ranked by intrinsic score
+    (unscored last).
+    """
+    if limit < 1:
+        limit = 1
+    if limit > 500:
+        limit = 500
+
+    sql = """
+        SELECT
+            c.id::text          AS id,
+            c.normalized_key,
+            c.display_name,
+            c.ecosystem,
+            c.kind              AS capability_kind,
+            c.component_kind,
+            c.runtime,
+            c.cost_tier,
+            c.license_spdx,
+            v.id::text          AS head_version_id,
+            v.display_version,
+            s.total_score,
+            s.confidence
+        FROM capability c
+        LEFT JOIN LATERAL (
+            SELECT id, display_version
+            FROM capability_version
+            WHERE capability_id = c.id
+              AND superseded_by_id IS NULL
+            ORDER BY created_at DESC
+            LIMIT 1
+        ) v ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT total_score, confidence
+            FROM scorecard
+            WHERE capability_version_id = v.id
+            ORDER BY computed_at DESC
+            LIMIT 1
+        ) s ON TRUE
+        WHERE
+              (%(component_kind)s::text IS NULL OR c.component_kind = %(component_kind)s)
+          AND (%(ecosystem)s::text      IS NULL OR c.ecosystem      = %(ecosystem)s)
+          AND (%(runtime)s::text        IS NULL OR c.runtime        = %(runtime)s)
+          AND (%(cost_tier)s::text      IS NULL OR c.cost_tier      = %(cost_tier)s)
+        ORDER BY
+            COALESCE(s.total_score, 0) DESC,
+            c.display_name ASC
+        LIMIT %(limit)s
+    """
+    params = {
+        "component_kind": component_kind,
+        "ecosystem": ecosystem,
+        "runtime": runtime,
+        "cost_tier": cost_tier,
         "limit": limit,
     }
     with conn.cursor() as cur:
@@ -95,9 +202,11 @@ def search_capabilities(
 
 def capability_detail(conn, capability_id: str) -> dict[str, Any] | None:
     """
-    Full record for one capability: metadata, head version, interfaces,
-    declared dependencies, and the head version's scorecard (if any).
-    Returns None if the capability is not found.
+    Full record for one capability: metadata (including component_kind,
+    runtime, cost_tier, license_spdx), head version, interfaces (with
+    input/output type descriptors when populated), declared dependencies,
+    and the head version's scorecard (if any). Returns None if the
+    capability is not found.
     """
     try:
         cap_uuid = uuid.UUID(capability_id)
@@ -122,7 +231,11 @@ def capability_detail(conn, capability_id: str) -> dict[str, Any] | None:
         "normalized_key": cap["normalized_key"],
         "display_name": cap["display_name"],
         "ecosystem": cap["ecosystem"],
-        "kind": cap["kind"],
+        "capability_kind": cap["capability_kind"],
+        "component_kind": cap["component_kind"],
+        "runtime": cap["runtime"],
+        "cost_tier": cap["cost_tier"],
+        "license_spdx": cap["license_spdx"],
         "first_seen_at": cap["first_seen_at"],
         "head_version": head,
         "interfaces": interfaces,
@@ -138,7 +251,9 @@ def capability_detail(conn, capability_id: str) -> dict[str, Any] | None:
 def _fetch_capability(conn, cap_id: uuid.UUID) -> dict[str, Any] | None:
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT normalized_key, display_name, ecosystem, kind, first_seen_at "
+            "SELECT normalized_key, display_name, ecosystem, kind, "
+            "       component_kind, runtime, cost_tier, license_spdx, "
+            "       first_seen_at "
             "FROM capability WHERE id = %s",
             (cap_id,),
         )
@@ -149,8 +264,12 @@ def _fetch_capability(conn, cap_id: uuid.UUID) -> dict[str, Any] | None:
         "normalized_key": row[0],
         "display_name": row[1],
         "ecosystem": row[2],
-        "kind": row[3],
-        "first_seen_at": row[4],
+        "capability_kind": row[3],
+        "component_kind": row[4],
+        "runtime": row[5],
+        "cost_tier": row[6],
+        "license_spdx": row[7],
+        "first_seen_at": row[8],
     }
 
 
@@ -178,7 +297,8 @@ def _fetch_head_version(conn, cap_id: uuid.UUID) -> dict[str, Any] | None:
 def _fetch_interfaces(conn, version_id: uuid.UUID) -> list[dict[str, Any]]:
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT kind, name, signature, language, evidence_item_id "
+            "SELECT kind, name, signature, language, input_type, output_type, "
+            "       evidence_item_id "
             "FROM capability_interface "
             "WHERE capability_version_id = %s "
             "ORDER BY kind, name",
@@ -191,7 +311,9 @@ def _fetch_interfaces(conn, version_id: uuid.UUID) -> list[dict[str, Any]]:
             "name": r[1],
             "signature": r[2],
             "language": r[3],
-            "evidence_item_id": str(r[4]),
+            "input_type": r[4],
+            "output_type": r[5],
+            "evidence_item_id": str(r[6]),
         }
         for r in rows
     ]

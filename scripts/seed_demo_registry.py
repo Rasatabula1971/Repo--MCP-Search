@@ -346,15 +346,23 @@ def _ensure_scoring_profile(cur) -> uuid.UUID:
 def seed_one(cur, dc: DemoCapability, provider_id: uuid.UUID,
              profile_id: uuid.UUID) -> str:
     """Insert one demo capability end-to-end. Returns a short status."""
-    # 1. capability — idempotent on normalized_key
+    # 1. capability — idempotent on normalized_key. Existing rows are
+    # patched with the Phase 1 fields (component_kind, runtime, cost_tier,
+    # license_spdx) so a re-run brings older seeds up to date.
+    runtime = "npm_import" if dc.ecosystem == "npm" else "python_import"
     cur.execute(
         "INSERT INTO capability "
-        "(normalized_key, display_name, ecosystem, kind) "
-        "VALUES (%s, %s, %s, %s) "
+        "(normalized_key, display_name, ecosystem, kind, "
+        " component_kind, runtime, cost_tier, license_spdx) "
+        "VALUES (%s, %s, %s, %s, 'library', %s, 'free', 'MIT') "
         "ON CONFLICT (normalized_key) DO UPDATE "
-        "  SET display_name = EXCLUDED.display_name "
+        "  SET display_name  = EXCLUDED.display_name, "
+        "      component_kind = 'library', "
+        "      runtime       = EXCLUDED.runtime, "
+        "      cost_tier     = COALESCE(capability.cost_tier, EXCLUDED.cost_tier), "
+        "      license_spdx  = COALESCE(capability.license_spdx, EXCLUDED.license_spdx) "
         "RETURNING id",
-        (dc.normalized_key, dc.display_name, dc.ecosystem, dc.kind),
+        (dc.normalized_key, dc.display_name, dc.ecosystem, dc.kind, runtime),
     )
     cap_id = cur.fetchone()[0]
 

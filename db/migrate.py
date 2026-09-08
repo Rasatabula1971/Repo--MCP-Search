@@ -67,7 +67,10 @@ def up(for_tests: bool = False) -> None:
                 continue
 
             print(f"  apply {fname}")
-            sql = path.read_text()
+            # Force UTF-8 so migrations with non-ASCII characters
+            # (em-dashes in comments, etc.) don't fail under Windows
+            # cp1252 default encoding.
+            sql = path.read_text(encoding="utf-8")
             with conn.cursor() as cur:
                 cur.execute(sql)
                 cur.execute(

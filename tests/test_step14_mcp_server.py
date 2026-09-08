@@ -196,12 +196,12 @@ def test_search_filter_by_ecosystem(conn):
     assert [r["normalized_key"] for r in rows] == ["npm:foo"]
 
 
-def test_search_filter_by_kind(conn):
+def test_search_filter_by_capability_kind(conn):
     _mk_capability(conn, "pypi:libfoo", "libfoo", kind="library")
     _mk_capability(conn, "pypi:cli-foo", "cli-foo", kind="cli")
     conn.commit()
 
-    rows = queries.search_capabilities(conn, query="foo", kind="cli")
+    rows = queries.search_capabilities(conn, query="foo", capability_kind="cli")
     assert [r["normalized_key"] for r in rows] == ["pypi:cli-foo"]
 
 

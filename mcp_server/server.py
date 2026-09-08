@@ -33,27 +33,80 @@ mcp = FastMCP("cip")
 def search_capabilities(
     query: str,
     ecosystem: Optional[str] = None,
-    kind: Optional[str] = None,
+    capability_kind: Optional[str] = None,
+    component_kind: Optional[str] = None,
+    runtime: Optional[str] = None,
+    cost_tier: Optional[str] = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
-    Search the CIP capability registry.
+    Keyword search the CIP capability registry.
 
     Args:
       query: case-insensitive substring against display_name and normalized_key.
-      ecosystem: optional filter — e.g. "pypi", "npm", "source".
-      kind: optional filter — e.g. "library", "cli", "service".
-      limit: max rows to return (1-100, default 20).
+      ecosystem: optional — 'pypi', 'npm', 'source'.
+      capability_kind: optional semantic role — 'library', 'cli', 'service', ...
+      component_kind: optional format — 'library', 'repo', 'agent', 'skill',
+        'mcp_tool', 'workflow_template'.
+      runtime: optional — 'python_import', 'mcp_stdio', 'claude_skill',
+        'git_clone', ...
+      cost_tier: optional — 'free', 'free_tier', 'cheap_paid', 'paid'.
+      limit: max rows (1-100, default 20).
 
-    Returns a list of {id, normalized_key, display_name, ecosystem, kind,
-    head_version_id, display_version, total_score, confidence}. Rows are
-    ordered by intrinsic score descending; unscored capabilities come
-    last.
+    Returns rows with {id, normalized_key, display_name, ecosystem,
+    capability_kind, component_kind, runtime, cost_tier, license_spdx,
+    head_version_id, display_version, total_score, confidence}. Ranked by
+    intrinsic score descending; unscored rows last.
     """
     conn = connect()
     try:
         return queries.search_capabilities(
-            conn, query=query, ecosystem=ecosystem, kind=kind, limit=limit,
+            conn,
+            query=query,
+            ecosystem=ecosystem,
+            capability_kind=capability_kind,
+            component_kind=component_kind,
+            runtime=runtime,
+            cost_tier=cost_tier,
+            limit=limit,
+        )
+    finally:
+        conn.close()
+
+
+@mcp.tool()
+def browse_components(
+    component_kind: Optional[str] = None,
+    ecosystem: Optional[str] = None,
+    runtime: Optional[str] = None,
+    cost_tier: Optional[str] = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    """
+    Discovery tool: enumerate components without a keyword. Use when
+    the caller doesn't know what to search for and wants to see what
+    exists in a category.
+
+    Args:
+      component_kind: 'library' | 'repo' | 'agent' | 'skill' | 'mcp_tool'
+        | 'workflow_template'.
+      ecosystem: 'pypi', 'npm', 'source', ...
+      runtime: 'python_import', 'mcp_stdio', 'claude_skill', ...
+      cost_tier: 'free', 'free_tier', 'cheap_paid', 'paid'.
+      limit: max rows (1-500, default 50).
+
+    Returns the same shape as search_capabilities. With no filters,
+    returns the whole registry (up to `limit`) ranked by intrinsic score.
+    """
+    conn = connect()
+    try:
+        return queries.browse_components(
+            conn,
+            component_kind=component_kind,
+            ecosystem=ecosystem,
+            runtime=runtime,
+            cost_tier=cost_tier,
+            limit=limit,
         )
     finally:
         conn.close()
@@ -67,10 +120,11 @@ def capability_detail(capability_id: str) -> Optional[dict[str, Any]]:
     Args:
       capability_id: UUID of the capability row.
 
-    Returns {id, normalized_key, display_name, ecosystem, kind,
-    first_seen_at, head_version, interfaces, dependencies, scorecard} or
-    None if the id does not exist. Every interface and dependency carries
-    an evidence_item_id so the caller can trace back to the byte range
+    Returns {id, normalized_key, display_name, ecosystem, capability_kind,
+    component_kind, runtime, cost_tier, license_spdx, first_seen_at,
+    head_version, interfaces, dependencies, scorecard} or None if the id
+    does not exist. Every interface and dependency carries an
+    evidence_item_id so the caller can trace back to the byte range
     that established it.
     """
     conn = connect()
