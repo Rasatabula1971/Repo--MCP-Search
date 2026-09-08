@@ -13,6 +13,7 @@ from db.connection import connect
 from db import migrate
 
 TABLES_IN_TRUNCATE_ORDER = [
+    "ingest_run",
     "build_authorization",
     "recommendation_candidate",
     "recommendation",
