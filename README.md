@@ -1,6 +1,6 @@
 # Capability Intelligence Platform
 
-Implementation of Steps 0–3 of the Build Workflow (v1.0). The specs in `docs/` are the source of truth; this code is one path through them.
+Implementation of Steps 0–13 of the Build Workflow (v1.0). The Build Workflow, PDR, Data Model, and State Machine specs are the source of truth; this code is one path through them.
 
 ## What's built
 
@@ -66,7 +66,7 @@ cip/
 ├── workers/           Queue consumers (Step 5+)
 ├── db/                Migrations and connection helpers
 ├── tests/
-└── docs/              PDR, Data Model, State Machine, Build Workflow
+└── docs/              (empty — source specs live outside this repo)
 ```
 
 ## Rules that outrank the layout
