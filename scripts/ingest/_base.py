@@ -206,17 +206,29 @@ def upsert_component(
     metadata_json = json.dumps(metadata or {})
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, display_name, license_spdx, metadata FROM capability "
-            "WHERE normalized_key = %s",
+            "SELECT id, display_name, component_kind, runtime, cost_tier, "
+            "       license_spdx, metadata "
+            "FROM capability WHERE normalized_key = %s",
             (normalized_key,),
         )
         existing = cur.fetchone()
         if existing:
-            cap_id = existing[0]
+            cap_id, e_display, e_kind, e_runtime, e_cost, e_license, e_meta = existing
+            # For nullable fields we use COALESCE on write (keep the old
+            # value when the ingester didn't offer one). Mirror that in
+            # the change-detection so 'updated' means the row would
+            # actually differ after the UPDATE — not just "the args are
+            # not element-wise identical to what the DB holds."
+            eff_runtime = runtime if runtime is not None else e_runtime
+            eff_cost    = cost_tier if cost_tier is not None else e_cost
+            eff_license = license_spdx if license_spdx is not None else e_license
             was_updated = (
-                existing[1] != display_name
-                or (existing[2] or "") != (license_spdx or "")
-                or existing[3] != (metadata or {})
+                e_display != display_name
+                or e_kind != component_kind
+                or e_runtime != eff_runtime
+                or e_cost != eff_cost
+                or e_license != eff_license
+                or e_meta != (metadata or {})
             )
             if was_updated:
                 cur.execute(
