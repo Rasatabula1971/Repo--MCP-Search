@@ -57,15 +57,22 @@ Notes:
 ## Layout
 
 ```
-cip/
-├── api/               FastAPI app (Step 14)
+.
+├── api/               FastAPI app (Step 14 — stubs only)
 ├── core/              Domain logic — no HTTP, no framework imports
-│   └── workflow/      Workflow engine (Step 3)
-├── connectors/        Source ecosystems (Step 4+)
-├── analysis/          Static analysis extractors (Step 6+)
+│   ├── workflow/      Workflow engine (Step 3)
+│   ├── capability/    Registry, normalization, supersession (Step 8)
+│   ├── scoring/       Deterministic scoring, profile-as-data (Step 9)
+│   ├── policy/        Gates, risk acceptance, publication guard (Step 10)
+│   ├── judgment/      Model-analysis contracts (Step 7)
+│   └── project/       Requirements, fit, recommendations (Step 12)
+├── connectors/        Source ecosystems — github, mcp, fake (Step 4+)
+├── analysis/          Static analysis + evidence extractors (Step 6+)
 ├── workers/           Queue consumers (Step 5+)
 ├── db/                Migrations and connection helpers
-├── tests/
+├── config/            providers.yaml, scoring_profiles/, recommendation_rules/
+├── scripts/           (empty)
+├── tests/             pytest suite — one test_stepN_*.py per step
 └── docs/              (empty — source specs live outside this repo)
 ```
 
@@ -74,4 +81,4 @@ cip/
 - `core/` must not import from `api/` or `workers/`. Enforced by import-linter.
 - `core/scoring/` must have no import path to any provider client. Same enforcement.
 - Schema changes are migrations. Never alter a table in place.
-- `state_transition`, `evidence_item`, `correction_event` are append-only.
+- `state_transition` and `evidence_item` are append-only (enforced at the DB level).
