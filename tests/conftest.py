@@ -25,6 +25,7 @@ TABLES_IN_TRUNCATE_ORDER = [
     "fit_gap",
     "fit_evaluation",
     "requirement_constraint",
+    "project_constraint",
     "project_requirement",
     "project",
     "risk_acceptance",

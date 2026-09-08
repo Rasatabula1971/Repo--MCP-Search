@@ -4,6 +4,12 @@ no MCP types leak in, so these are testable without the MCP transport.
 
 Every dict returned here is safe to hand straight to json.dumps.
 
+Phase 4 additions:
+- browse_components / search_capabilities accept an optional project_id
+  and hard-filter rows that fail any of that project's constraints.
+- capability_constraint_fit(project_id, capability_id) returns the
+  per-constraint verdict list for one component.
+
 Vocabulary note: `capability.kind` (pre-Phase-1) is the semantic role of
 what the thing does — 'library' | 'cli' | 'service' | .... The new
 `capability.component_kind` (Phase 1) is the *format* — 'library' | 'repo'
@@ -15,7 +21,9 @@ but the names disambiguate.
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Any, Optional
+
+from core.policy import constraints as _c
 
 
 # ---------------------------------------------------------------------------
@@ -30,6 +38,7 @@ def search_capabilities(
     component_kind: str | None = None,
     runtime: str | None = None,
     cost_tier: str | None = None,
+    project_id: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -112,6 +121,7 @@ def search_capabilities(
         cur.execute(sql, params)
         cols = [d[0] for d in cur.description]
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+    rows = _filter_by_constraints(conn, rows, project_id)
     return [_json_safe(row) for row in rows]
 
 
@@ -125,6 +135,7 @@ def browse_components(
     ecosystem: str | None = None,
     runtime: str | None = None,
     cost_tier: str | None = None,
+    project_id: str | None = None,
     limit: int = 50,
 ) -> list[dict[str, Any]]:
     """
@@ -193,6 +204,7 @@ def browse_components(
         cur.execute(sql, params)
         cols = [d[0] for d in cur.description]
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+    rows = _filter_by_constraints(conn, rows, project_id)
     return [_json_safe(row) for row in rows]
 
 
@@ -383,6 +395,122 @@ def _fetch_scorecard(conn, version_id: uuid.UUID) -> dict[str, Any] | None:
         ]
     card["dimensions"] = dims
     return card
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 — project constraints
+# ---------------------------------------------------------------------------
+
+def _load_project_constraints(conn, project_id: str) -> list[_c.Constraint]:
+    """Read all project_constraint rows for one project."""
+    try:
+        pid = uuid.UUID(project_id)
+    except (ValueError, TypeError):
+        return []
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT kind, detail FROM project_constraint WHERE project_id = %s "
+            "ORDER BY created_at",
+            (pid,),
+        )
+        return [_c.Constraint(kind=k, detail=(d or {})) for (k, d) in cur.fetchall()]
+
+
+def _row_to_material(row: dict[str, Any]) -> _c.ComponentMaterial:
+    """A capability_link-style row (dict) -> ComponentMaterial. Uses the
+    same field names browse/search return."""
+    return _c.ComponentMaterial.from_row({
+        "component_kind": row.get("component_kind"),
+        "runtime": row.get("runtime"),
+        "cost_tier": row.get("cost_tier"),
+        "license_spdx": row.get("license_spdx"),
+        # metadata isn't in the browse/search select, so pull it if missing
+        "metadata": row.get("metadata") or {},
+    })
+
+
+def _filter_by_constraints(
+    conn, rows: list[dict[str, Any]], project_id: Optional[str],
+) -> list[dict[str, Any]]:
+    """
+    If project_id is set, load its constraints and drop rows that
+    hard-fail. Rows that pass are annotated with 'constraint_verdicts'
+    (list of {kind, passed, reason, detail}).
+
+    We need each row's metadata for the evaluator; browse/search don't
+    include it in their SELECT (kept lean). So we fetch metadata in
+    one batched query when constraints are on.
+    """
+    if not project_id:
+        return rows
+    constraints = _load_project_constraints(conn, project_id)
+    if not constraints:
+        return rows
+
+    # Batch-fetch metadata by id.
+    ids = [r["id"] for r in rows]
+    if not ids:
+        return rows
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id::text, metadata FROM capability WHERE id::text = ANY(%s)",
+            (ids,),
+        )
+        meta_by_id = {row[0]: (row[1] or {}) for row in cur.fetchall()}
+
+    kept: list[dict[str, Any]] = []
+    for r in rows:
+        r_meta = dict(r)
+        r_meta["metadata"] = meta_by_id.get(r["id"], {})
+        material = _row_to_material(r_meta)
+        verdict = _c.evaluate(constraints, material)
+        if verdict.hard_fail:
+            continue
+        r["constraint_verdicts"] = [
+            {"kind": v.kind, "passed": v.passed, "reason": v.reason,
+             "detail": v.detail} for v in verdict.verdicts
+        ]
+        kept.append(r)
+    return kept
+
+
+def capability_constraint_fit(
+    conn, project_id: str, capability_id: str,
+) -> Optional[dict[str, Any]]:
+    """
+    Full per-constraint verdict for one component against one project's
+    constraints. Returns None if either id is malformed or not found.
+    """
+    try:
+        _cap = uuid.UUID(capability_id)
+    except (ValueError, TypeError):
+        return None
+    constraints = _load_project_constraints(conn, project_id)
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id::text, normalized_key, display_name, component_kind, "
+            "       runtime, cost_tier, license_spdx, metadata "
+            "FROM capability WHERE id = %s",
+            (_cap,),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    cols = ["id", "normalized_key", "display_name", "component_kind",
+            "runtime", "cost_tier", "license_spdx", "metadata"]
+    row_dict = dict(zip(cols, row))
+    material = _c.ComponentMaterial.from_row(row_dict)
+    result = _c.evaluate(constraints, material)
+    return _json_safe({
+        "capability_id": capability_id,
+        "normalized_key": row_dict["normalized_key"],
+        "display_name": row_dict["display_name"],
+        "hard_fail": result.hard_fail,
+        "verdicts": [
+            {"kind": v.kind, "passed": v.passed, "reason": v.reason,
+             "detail": v.detail} for v in result.verdicts
+        ],
+    })
 
 
 # ---------------------------------------------------------------------------

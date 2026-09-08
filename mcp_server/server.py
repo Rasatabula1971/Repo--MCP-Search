@@ -37,6 +37,7 @@ def search_capabilities(
     component_kind: Optional[str] = None,
     runtime: Optional[str] = None,
     cost_tier: Optional[str] = None,
+    project_id: Optional[str] = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -51,6 +52,10 @@ def search_capabilities(
       runtime: optional — 'python_import', 'mcp_stdio', 'claude_skill',
         'git_clone', ...
       cost_tier: optional — 'free', 'free_tier', 'cheap_paid', 'paid'.
+      project_id: optional UUID — when set, hard-filters rows that fail
+        any of the project's constraints (cpu_only, must_be_free_tier,
+        must_be_local, license_allowlist, etc.). Kept rows include a
+        `constraint_verdicts` field showing per-constraint outcomes.
       limit: max rows (1-100, default 20).
 
     Returns rows with {id, normalized_key, display_name, ecosystem,
@@ -68,6 +73,7 @@ def search_capabilities(
             component_kind=component_kind,
             runtime=runtime,
             cost_tier=cost_tier,
+            project_id=project_id,
             limit=limit,
         )
     finally:
@@ -80,6 +86,7 @@ def browse_components(
     ecosystem: Optional[str] = None,
     runtime: Optional[str] = None,
     cost_tier: Optional[str] = None,
+    project_id: Optional[str] = None,
     limit: int = 50,
 ) -> list[dict[str, Any]]:
     """
@@ -106,7 +113,35 @@ def browse_components(
             ecosystem=ecosystem,
             runtime=runtime,
             cost_tier=cost_tier,
+            project_id=project_id,
             limit=limit,
+        )
+    finally:
+        conn.close()
+
+
+@mcp.tool()
+def capability_constraint_fit(
+    project_id: str,
+    capability_id: str,
+) -> Optional[dict[str, Any]]:
+    """
+    Full per-constraint verdict for one component against one project's
+    project_constraint set.
+
+    Args:
+      project_id:    UUID of the project row.
+      capability_id: UUID of the capability row.
+
+    Returns {capability_id, normalized_key, display_name, hard_fail,
+    verdicts:[{kind, passed, reason, detail}]} or None if either id
+    is malformed or not found. If the project has no constraints,
+    hard_fail is False and verdicts is [].
+    """
+    conn = connect()
+    try:
+        return queries.capability_constraint_fit(
+            conn, project_id=project_id, capability_id=capability_id,
         )
     finally:
         conn.close()
