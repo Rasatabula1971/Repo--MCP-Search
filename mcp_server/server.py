@@ -201,6 +201,78 @@ def capability_detail(capability_id: str) -> Optional[dict[str, Any]]:
         conn.close()
 
 
+@mcp.tool()
+def suggest_pipeline(
+    intent: str,
+    project_id: Optional[str] = None,
+    max_stages: int = 5,
+) -> dict[str, Any]:
+    """
+    Decompose an intent into an ordered pipeline of stages and propose
+    a component pick per stage from the CIP registry.
+
+    Args:
+      intent: plain-English description of what the pipeline must do.
+      project_id: optional UUID — when set, candidate picks are
+        pre-filtered by that project's project_constraint set.
+      max_stages: cap on stages (default 5, hard max 12).
+
+    Returns {intent, project_id, stages, edges, notes}:
+      stages[]: {index, name, purpose, role, preferred_component_kind,
+                 search_terms, candidates[], pick}
+      edges[]:  adjacent-stage compatibility verdicts
+      notes[]:  strings flagging gaps (no candidates in registry, etc.)
+
+    The proposal is READ-ONLY — no rows are written. The human is the
+    designer; this is a starting point to react to.
+    """
+    from scripts.compose.suggest_pipeline import (
+        suggest_pipeline as _suggest, MAX_STAGES,
+    )
+    capped = max_stages if max_stages <= MAX_STAGES else MAX_STAGES
+    proposal = _suggest(intent=intent, project_id=project_id, max_stages=capped)
+    return {
+        "intent": proposal.intent,
+        "project_id": proposal.project_id,
+        "stages": proposal.stages,
+        "edges": proposal.edges,
+        "notes": proposal.notes,
+    }
+
+
+@mcp.tool()
+def scaffold_pipeline(
+    proposal: dict[str, Any],
+    out_dir: str,
+    name: Optional[str] = None,
+) -> dict[str, Any]:
+    """
+    Turn a pipeline proposal (from suggest_pipeline, or hand-authored)
+    into a real directory of files: pipeline.yaml, README.md, .env.example,
+    and per-stage folders with README/TODO documentation. No LLM, no DB.
+
+    Args:
+      proposal: dict with keys {intent, project_id, stages[], edges[], notes[]}.
+        Typically the return value of suggest_pipeline. Optional 'name' key
+        may be embedded; overridden by the `name` arg if given.
+      out_dir: directory to write into. Created if missing. Existing files
+        are overwritten silently — meant for a fresh directory.
+      name: optional override for the pipeline name. If neither `name` nor
+        proposal['name'] is set, uses 'unnamed-pipeline'.
+
+    Returns {out_dir, files_written[], env_vars_detected[]}.
+
+    The scaffold is deliberately skeletal — it doesn't write runnable code.
+    The wiring between stages is the operator's design call. Each stage
+    folder has a TODO.md.
+    """
+    from pathlib import Path
+    from scripts.compose.scaffold_pipeline import scaffold
+    if name:
+        proposal = {**proposal, "name": name}
+    return scaffold(dict(proposal), Path(out_dir))
+
+
 def main() -> None:
     """Entry point for the `cip-mcp` console script. Runs stdio transport."""
     mcp.run()
