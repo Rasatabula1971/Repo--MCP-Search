@@ -1,0 +1,14 @@
+{
+  "name": "cip-plugins",
+  "description": "Plugins that ship the Capability Intelligence Platform's discovery + composition tools.",
+  "owner": {
+    "name": "Rasatabula1971"
+  },
+  "plugins": [
+    {
+      "name": "cip-composer",
+      "description": "Search a curated component registry (libraries, repos, agents, skills, MCP tools) before building. Compose pipelines from what already exists.",
+      "source": "./cip-composer"
+    }
+  ]
+}

@@ -4,9 +4,26 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cip"
-version = "0.1.0"
-description = "Capability Intelligence Platform - Steps 0-13"
+version = "0.2.0"
+description = "Capability Intelligence Platform — composable-component registry with LLM-in-chat search + pipeline composition"
+readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.11"
+authors = [
+    { name = "Rasatabula1971" }
+]
+keywords = ["mcp", "registry", "capability", "search-before-build",
+            "component-discovery", "pipeline", "claude"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+]
 dependencies = [
     "psycopg[binary]==3.2.3",
     "python-dotenv==1.0.1",
@@ -20,6 +37,11 @@ dependencies = [
 [project.scripts]
 cip-mcp = "mcp_server.server:main"
 cip-composer = "cip_composer.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Rasatabula1971/Repo--MCP-Search"
+Repository = "https://github.com/Rasatabula1971/Repo--MCP-Search"
+Issues = "https://github.com/Rasatabula1971/Repo--MCP-Search/issues"
 
 [project.optional-dependencies]
 dev = [

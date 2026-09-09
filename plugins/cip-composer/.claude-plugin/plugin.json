@@ -1,0 +1,14 @@
+{
+  "name": "cip-composer",
+  "description": "Search a curated component registry (libraries, repos, agents, skills, MCP tools) before building. Compose pipelines from what already exists.",
+  "author": {
+    "name": "Rasatabula1971"
+  },
+  "homepage": "https://github.com/Rasatabula1971/Repo--MCP-Search",
+  "mcpServers": {
+    "cip": {
+      "type": "stdio",
+      "command": "cip-mcp"
+    }
+  }
+}

@@ -95,6 +95,17 @@ From inside a Claude Code session with the CIP MCP server registered (`claude mc
 
 A companion Claude skill lives at `~/.claude/skills/cip-composer/SKILL.md` — it teaches Claude when to invoke CIP and how to hold the conversation.
 
+## Adding CIP to another project
+
+CIP ships in three shapes so you can add it to any build:
+
+- **Python package** — `pip install git+https://github.com/Rasatabula1971/Repo--MCP-Search.git#subdirectory=cip_steps_0_to_13` (drops `cip-mcp` and `cip-composer` on PATH)
+- **MCP server** — `claude mcp add cip -- cip-mcp` after installing
+- **Claude plugin** — bundles the skill and the MCP server together via `claude plugin install cip-composer` (marketplace lives at [`plugins/`](plugins/))
+
+Full walkthrough: [`docs/INSTALL_IN_OTHER_PROJECTS.md`](docs/INSTALL_IN_OTHER_PROJECTS.md).
+Prerequisite for all three: a Postgres 14+ instance with the CIP schema applied.
+
 ## Ingestion cadence
 
 See [`docs/ingestion_cadence.md`](docs/ingestion_cadence.md) for scheduled-task recipes.
