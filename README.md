@@ -7,6 +7,8 @@ Two layers ship in this repo:
 - **Steps 0–13** — the Build Workflow foundation: provenance, workflow engine, connectors, analysis, judgment, capability registry, scoring, gates, lifecycle, projects, search-before-build gate.
 - **Foundation Phases 1–6** — the composable-component layer built on top: component kinds beyond libraries, repeatable ingestion, LLM-assisted classification/supersession/linking, per-kind scoring, project constraints, pipeline composition + scaffolding, and a Claude skill + CLI (`cip-composer`).
 
+**New to this repo?** Read [`docs/WHAT_IS_CIP.md`](docs/WHAT_IS_CIP.md) for a plain-language overview, or [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the technical reference.
+
 ## What's built
 
 ### Build Workflow (Steps 0–13)
