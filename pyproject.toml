@@ -37,6 +37,7 @@ dependencies = [
 [project.scripts]
 cip-mcp = "mcp_server.server:main"
 cip-composer = "cip_composer.cli:main"
+cip-bootstrap = "scripts.bootstrap:main"
 
 [project.urls]
 Homepage = "https://github.com/Rasatabula1971/Repo--MCP-Search"

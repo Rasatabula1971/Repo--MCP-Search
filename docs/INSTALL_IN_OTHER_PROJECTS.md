@@ -33,6 +33,38 @@ See [../README.md](../README.md) for the reason and the PowerShell recipe.
 
 ---
 
+## Recommended: shared registry (Path B)
+
+One Postgres, every project points at it, registry data compounds
+across every user. This is the shape CIP is designed around — if only
+one developer's project ever ingests, the registry stays small and
+`browse_components` returns thin results everywhere else. Sharing the
+DB removes that gap.
+
+**Bootstrap in one command** (after installing the Python package and
+setting your env vars):
+
+```powershell
+# Verify what state the DB is in (read-only, no writes).
+cip-bootstrap --verify
+
+# First-time set-up: creates the target databases if missing (needs
+# CREATEDB privilege OR an --admin-url with one), applies migrations.
+cip-bootstrap
+
+# If the shared DB was provisioned for you and you only have USAGE:
+cip-bootstrap --skip-create
+
+# Force use of a specific admin channel for CREATE DATABASE:
+cip-bootstrap --admin-url "postgresql://postgres@shared-host:5432/postgres"
+```
+
+`cip-bootstrap` is idempotent — safe to re-run against an already-set-up
+DB (it'll skip existing databases and applied migrations, then print a
+summary of the current state).
+
+Wiring the MCP server per project is unchanged from Path A.
+
 ## Path A — one-off local install (individual developer)
 
 ```powershell
@@ -47,8 +79,10 @@ createdb cip_test
 [Environment]::SetEnvironmentVariable('DATABASE_URL','postgresql://cip:cip@localhost:5432/cip_local','User')
 [Environment]::SetEnvironmentVariable('TEST_DATABASE_URL','postgresql://cip:cip@localhost:5432/cip_test','User')
 
-# 4. Apply migrations (18 files, idempotent).
+# 4. Apply migrations (18 files, idempotent). Either raw:
 python -m db.migrate up
+# Or via the bootstrap script (also creates missing DBs):
+cip-bootstrap --skip-create
 
 # 5. Register the MCP server in the current project.
 claude mcp add cip -- cip-mcp
@@ -62,20 +96,24 @@ with 7 tools.
 
 ---
 
-## Path B — shared registry (small team)
+## Path B — shared registry (full setup, manual)
 
-The registry data compounds across users. One Postgres instance somewhere
-(a small always-on machine, a cloud DB, a container), every project points
-at it via `DATABASE_URL`.
+Covered by the **Recommended** section at the top of this file using
+`cip-bootstrap`. This section is what the bootstrap does under the hood
+if you want to run each step by hand or bake it into your own tooling.
 
 ```powershell
 pip install git+https://github.com/Rasatabula1971/Repo--MCP-Search.git#subdirectory=cip_steps_0_to_13
 
 # Point at the shared instance. User env vars, not .env.
 [Environment]::SetEnvironmentVariable('DATABASE_URL','postgresql://cip:<pass>@your-host:5432/cip','User')
+[Environment]::SetEnvironmentVariable('TEST_DATABASE_URL','postgresql://cip:<pass>@your-host:5432/cip_test','User')
 
-# Migrations are safe to re-apply — filename + checksum idempotent.
-python -m db.migrate up
+# One-shot: cip-bootstrap does all the below in one command.
+cip-bootstrap
+# Or, step by step (equivalent):
+python -m db.migrate up                                # migrations, idempotent
+python -m db.migrate up --test                         # migrations for the test db too
 
 # Register the MCP server per project as usual.
 claude mcp add cip -- cip-mcp

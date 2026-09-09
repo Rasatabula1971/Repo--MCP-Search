@@ -99,7 +99,7 @@ A companion Claude skill lives at `~/.claude/skills/cip-composer/SKILL.md` — i
 
 CIP ships in three shapes so you can add it to any build:
 
-- **Python package** — `pip install git+https://github.com/Rasatabula1971/Repo--MCP-Search.git#subdirectory=cip_steps_0_to_13` (drops `cip-mcp` and `cip-composer` on PATH)
+- **Python package** — `pip install git+https://github.com/Rasatabula1971/Repo--MCP-Search.git#subdirectory=cip_steps_0_to_13` (drops `cip-mcp`, `cip-composer`, and `cip-bootstrap` on PATH)
 - **MCP server** — `claude mcp add cip -- cip-mcp` after installing
 - **Claude plugin** — bundles the skill and the MCP server together via `claude plugin install cip-composer` (marketplace lives at [`plugins/`](plugins/))
 
