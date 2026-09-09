@@ -13,6 +13,7 @@ from db.connection import connect
 from db import migrate
 
 TABLES_IN_TRUNCATE_ORDER = [
+    "workflow_template_step",
     "component_score",
     "capability_link",
     "component_classification",

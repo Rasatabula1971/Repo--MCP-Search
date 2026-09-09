@@ -24,6 +24,7 @@ import uuid
 from typing import Any, Optional
 
 from core.policy import constraints as _c
+from core.policy import compatibility as _compat
 
 
 # ---------------------------------------------------------------------------
@@ -510,6 +511,79 @@ def capability_constraint_fit(
             {"kind": v.kind, "passed": v.passed, "reason": v.reason,
              "detail": v.detail} for v in result.verdicts
         ],
+    })
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 — compatibility between two components
+# ---------------------------------------------------------------------------
+
+def _fetch_row_for_compat(conn, cap_id: uuid.UUID) -> dict[str, Any] | None:
+    """Row + one head-version interface (if any) for compat checking."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id::text, normalized_key, display_name, component_kind, runtime "
+            "FROM capability WHERE id = %s",
+            (cap_id,),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    result = {
+        "id": row[0], "normalized_key": row[1], "display_name": row[2],
+        "component_kind": row[3], "runtime": row[4],
+    }
+    # Grab the head-version's first interface as a representative I/O
+    # signature. Most rows have no interfaces populated yet — that's OK,
+    # compatibility.check_pair handles None gracefully.
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT ci.input_type, ci.output_type "
+            "FROM capability_interface ci "
+            "JOIN capability_version cv ON cv.id = ci.capability_version_id "
+            "WHERE cv.capability_id = %s AND cv.superseded_by_id IS NULL "
+            "ORDER BY ci.kind, ci.name LIMIT 1",
+            (cap_id,),
+        )
+        iface = cur.fetchone()
+    result["input_type"] = iface[0] if iface else None
+    result["output_type"] = iface[1] if iface else None
+    return result
+
+
+def capability_compatibility(
+    conn, source_id: str, target_id: str,
+) -> dict[str, Any] | None:
+    """
+    Evaluate whether the source component can feed the target. Returns
+    {source, target, verdict, reason, detail, io_type_check,
+    adapter_hint} or None if either id is malformed / not found.
+    """
+    try:
+        s_uid = uuid.UUID(source_id)
+        t_uid = uuid.UUID(target_id)
+    except (ValueError, TypeError):
+        return None
+    src = _fetch_row_for_compat(conn, s_uid)
+    tgt = _fetch_row_for_compat(conn, t_uid)
+    if src is None or tgt is None:
+        return None
+    v = _compat.check_pair(
+        source={"runtime": src["runtime"], "component_kind": src["component_kind"]},
+        target={"runtime": tgt["runtime"], "component_kind": tgt["component_kind"]},
+        source_output_type=src["output_type"],
+        target_input_type=tgt["input_type"],
+    )
+    return _json_safe({
+        "source": {"id": src["id"], "normalized_key": src["normalized_key"],
+                    "runtime": src["runtime"]},
+        "target": {"id": tgt["id"], "normalized_key": tgt["normalized_key"],
+                    "runtime": tgt["runtime"]},
+        "verdict": v.verdict,
+        "reason": v.reason,
+        "detail": v.detail,
+        "io_type_check": v.io_type_check,
+        "adapter_hint": v.adapter_hint,
     })
 
 

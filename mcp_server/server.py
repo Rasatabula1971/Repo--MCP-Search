@@ -148,6 +148,38 @@ def capability_constraint_fit(
 
 
 @mcp.tool()
+def capability_compatibility(
+    source_id: str,
+    target_id: str,
+) -> Optional[dict[str, Any]]:
+    """
+    Evaluate whether the source component can feed the target
+    downstream. Reads runtimes and (when populated) the head-version
+    interface I/O types.
+
+    Args:
+      source_id: UUID of the upstream/producing capability.
+      target_id: UUID of the downstream/consuming capability.
+
+    Returns {source, target, verdict, reason, detail, io_type_check,
+    adapter_hint} or None on malformed / missing ids.
+
+    verdict is one of:
+      compatible      — same runtime family, I/O types match or absent
+      adapter_needed  — different family with a known bridge, OR same
+                        family with mismatched types
+      incompatible    — no known bridge between the runtimes
+    """
+    conn = connect()
+    try:
+        return queries.capability_compatibility(
+            conn, source_id=source_id, target_id=target_id,
+        )
+    finally:
+        conn.close()
+
+
+@mcp.tool()
 def capability_detail(capability_id: str) -> Optional[dict[str, Any]]:
     """
     Full record for one capability.
