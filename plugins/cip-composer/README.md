@@ -26,7 +26,7 @@ has ingested.
 
 ```bash
 # Install the package (creates cip-mcp and cip-composer commands)
-pip install git+https://github.com/Rasatabula1971/Repo--MCP-Search.git#subdirectory=cip_steps_0_to_13
+pip install git+https://github.com/Rasatabula1971/Repo--CIP-Capability-Intelligence-Platform.git
 
 # Create databases + apply migrations
 createdb cip_local
@@ -46,7 +46,7 @@ One Postgres instance somewhere, every project points at it via
 current for everyone.
 
 ```bash
-pip install git+https://github.com/Rasatabula1971/Repo--MCP-Search.git#subdirectory=cip_steps_0_to_13
+pip install git+https://github.com/Rasatabula1971/Repo--CIP-Capability-Intelligence-Platform.git
 
 # Point at the shared instance (URL kept in user env vars, never in
 # a repo-tracked .env)
@@ -62,7 +62,7 @@ Once prerequisites are met, from the project root:
 
 ```bash
 # Add the marketplace this plugin lives in (path or git URL)
-claude plugin marketplace add path/to/Repo--MCP-Search/cip_steps_0_to_13/plugins
+claude plugin marketplace add path/to/Repo--CIP-Capability-Intelligence-Platform/plugins
 
 # Install the plugin
 claude plugin install cip-composer
@@ -89,7 +89,7 @@ The MCP tools should also be callable inside Claude Code as
 If you'd rather not use the plugin format and just want the MCP server:
 
 ```bash
-pip install git+https://github.com/Rasatabula1971/Repo--MCP-Search.git#subdirectory=cip_steps_0_to_13
+pip install git+https://github.com/Rasatabula1971/Repo--CIP-Capability-Intelligence-Platform.git
 claude mcp add cip -- cip-mcp
 ```
 

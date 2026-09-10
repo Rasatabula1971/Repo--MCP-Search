@@ -4,7 +4,7 @@ CIP is packaged three ways. Pick the shape that fits.
 
 | Shape | Install command | What you get |
 |-------|-----------------|--------------|
-| Python package | `pip install git+https://github.com/Rasatabula1971/Repo--MCP-Search.git#subdirectory=cip_steps_0_to_13` | `cip-mcp` + `cip-composer` on PATH, importable modules |
+| Python package | `pip install git+https://github.com/Rasatabula1971/Repo--CIP-Capability-Intelligence-Platform.git` | `cip-mcp` + `cip-composer` on PATH, importable modules |
 | MCP server | `claude mcp add cip -- cip-mcp` | 7 CIP tools in every Claude Code session in that project |
 | Claude plugin | `claude plugin marketplace add <path-or-git>/plugins`, then `claude plugin install cip-composer` | Skill + MCP server in one action |
 
@@ -69,7 +69,7 @@ Wiring the MCP server per project is unchanged from Path A.
 
 ```powershell
 # 1. Install the package. Adds cip-mcp + cip-composer to PATH.
-pip install git+https://github.com/Rasatabula1971/Repo--MCP-Search.git#subdirectory=cip_steps_0_to_13
+pip install git+https://github.com/Rasatabula1971/Repo--CIP-Capability-Intelligence-Platform.git
 
 # 2. Create the databases (Postgres already running).
 createdb cip_local
@@ -103,7 +103,7 @@ Covered by the **Recommended** section at the top of this file using
 if you want to run each step by hand or bake it into your own tooling.
 
 ```powershell
-pip install git+https://github.com/Rasatabula1971/Repo--MCP-Search.git#subdirectory=cip_steps_0_to_13
+pip install git+https://github.com/Rasatabula1971/Repo--CIP-Capability-Intelligence-Platform.git
 
 # Point at the shared instance. User env vars, not .env.
 [Environment]::SetEnvironmentVariable('DATABASE_URL','postgresql://cip:<pass>@your-host:5432/cip','User')
@@ -134,7 +134,7 @@ guidance) with the MCP server registration:
 ```bash
 # From your project root, add the marketplace this plugin lives in.
 # Either a local path or a git URL:
-claude plugin marketplace add path/to/Repo--MCP-Search/cip_steps_0_to_13/plugins
+claude plugin marketplace add path/to/Repo--CIP-Capability-Intelligence-Platform/plugins
 
 # Install the plugin.
 claude plugin install cip-composer

@@ -7,7 +7,7 @@ For install steps, see [`INSTALL_IN_OTHER_PROJECTS.md`](INSTALL_IN_OTHER_PROJECT
 ## Repo layout
 
 ```
-cip_steps_0_to_13/
+Repo--CIP-Capability-Intelligence-Platform/
 ├── core/                Domain logic — no HTTP, no framework imports
 │   ├── workflow/        Workflow engine (transitions, ledger, outbox)
 │   ├── capability/      Registry normalization + supersession

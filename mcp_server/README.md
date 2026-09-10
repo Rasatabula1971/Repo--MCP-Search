@@ -47,7 +47,7 @@ Add an entry to `%APPDATA%\Claude\claude_desktop_config.json`:
   "mcpServers": {
     "cip": {
       "command": "cip-mcp",
-      "cwd": "C:\\Repo and MCP search\\cip_steps_0_to_13"
+      "cwd": "C:\\CIP\\Repo--CIP-Capability-Intelligence-Platform"
     }
   }
 }

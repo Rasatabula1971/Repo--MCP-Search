@@ -29,27 +29,27 @@ Create tasks with `schtasks` or the GUI. Each task runs one PowerShell command:
 
 ```powershell
 schtasks /Create /SC DAILY /ST 02:00 /TN "CIP\daily-local-scans" `
-  /TR "powershell -NoProfile -Command \"cd 'C:\Repo and MCP search\cip_steps_0_to_13'; python -m scripts.ingest.mcp_registry; python -m scripts.ingest.claude_skills\""
+  /TR "powershell -NoProfile -Command \"cd 'C:\CIP\Repo--CIP-Capability-Intelligence-Platform'; python -m scripts.ingest.mcp_registry; python -m scripts.ingest.claude_skills\""
 ```
 
 **Weekly awesome-list refresh (edit the list):**
 
 ```powershell
 schtasks /Create /SC WEEKLY /D SUN /ST 03:00 /TN "CIP\weekly-awesome-video" `
-  /TR "powershell -NoProfile -Command \"cd 'C:\Repo and MCP search\cip_steps_0_to_13'; python -m scripts.ingest.awesome_list --list ad-si/awesome-video-production --max-repos 200\""
+  /TR "powershell -NoProfile -Command \"cd 'C:\CIP\Repo--CIP-Capability-Intelligence-Platform'; python -m scripts.ingest.awesome_list --list ad-si/awesome-video-production --max-repos 200\""
 ```
 
 **Weekly GitHub search (auto-since so only new repos hit the API):**
 
 ```powershell
 schtasks /Create /SC WEEKLY /D SUN /ST 04:00 /TN "CIP\weekly-video-search" `
-  /TR "powershell -NoProfile -Command \"cd 'C:\Repo and MCP search\cip_steps_0_to_13'; python -m scripts.ingest.github_search --query 'topic:video-production stars:>50' --auto-since --max-repos 200\""
+  /TR "powershell -NoProfile -Command \"cd 'C:\CIP\Repo--CIP-Capability-Intelligence-Platform'; python -m scripts.ingest.github_search --query 'topic:video-production stars:>50' --auto-since --max-repos 200\""
 ```
 
 **On-demand enrichment (manual for now — cron once cadence is proven):**
 
 ```powershell
-cd "C:\Repo and MCP search\cip_steps_0_to_13"
+cd "C:\CIP\Repo--CIP-Capability-Intelligence-Platform"
 python -m scripts.ingest.gemini_enrich --max 50 --kind repo
 python -m scripts.ingest.gemini_enrich --max 50 --kind skill
 python -m scripts.ingest.gemini_enrich --max 50 --kind mcp_tool
@@ -65,7 +65,7 @@ python -m scripts.ingest.gemini_enrich --max 50 --kind mcp_tool
 ## Verifying what a scheduled run did
 
 ```powershell
-cd "C:\Repo and MCP search\cip_steps_0_to_13"
+cd "C:\CIP\Repo--CIP-Capability-Intelligence-Platform"
 python -c "from db.connection import connect; c = connect(); cur = c.cursor(); cur.execute('SELECT source_name, status, counts, started_at, finished_at FROM ingest_run ORDER BY started_at DESC LIMIT 10'); [print(r) for r in cur.fetchall()]"
 ```
 

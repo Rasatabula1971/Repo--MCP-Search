@@ -57,7 +57,7 @@ The catalog **grows over time** — every time it's pointed at GitHub or a curat
 You (or whoever manages your infrastructure) need one thing set up first: a shared database the catalog lives in. After that's running once, adding CIP to any new project is:
 
 ```
-claude plugin marketplace add https://github.com/Rasatabula1971/Repo--MCP-Search.git
+claude plugin marketplace add https://github.com/Rasatabula1971/Repo--CIP-Capability-Intelligence-Platform.git
 claude plugin install cip-composer
 ```
 

@@ -40,9 +40,9 @@ cip-composer = "cip_composer.cli:main"
 cip-bootstrap = "scripts.bootstrap:main"
 
 [project.urls]
-Homepage = "https://github.com/Rasatabula1971/Repo--MCP-Search"
-Repository = "https://github.com/Rasatabula1971/Repo--MCP-Search"
-Issues = "https://github.com/Rasatabula1971/Repo--MCP-Search/issues"
+Homepage = "https://github.com/Rasatabula1971/Repo--CIP-Capability-Intelligence-Platform"
+Repository = "https://github.com/Rasatabula1971/Repo--CIP-Capability-Intelligence-Platform"
+Issues = "https://github.com/Rasatabula1971/Repo--CIP-Capability-Intelligence-Platform/issues"
 
 [project.optional-dependencies]
 dev = [

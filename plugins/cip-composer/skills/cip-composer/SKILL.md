@@ -33,7 +33,7 @@ Never propose a build from scratch until you have checked what already exists. I
 - `cip-composer flow "intent" --out-dir <dir>` — suggest + save + scaffold in one call
 - `cip-composer info` — registry stats
 
-The CLI reads DATABASE_URL and GEMINI_API_KEY from `.env` in the current working directory. Run it from the `cip_steps_0_to_13/` project directory or ensure `.env` is on the working path.
+The CLI reads DATABASE_URL and GEMINI_API_KEY from `.env` in the current working directory. Run it from the `Repo--CIP-Capability-Intelligence-Platform/` project directory or ensure `.env` is on the working path.
 
 ## When to invoke
 
